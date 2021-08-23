@@ -1,8 +1,30 @@
 # multi_agent_exp
 
+## 内容物
+* `server/main.go` ...サーバのメインコード
+* `network_operator.go` ...ネットワーク関連のコード
+* `supervisor.go` ...監視システム関連のコード
+* `timer.go` ...タイマーのサブコード
+* `logger.go` ...ロガーのサブコード
+
+* `client/main.go` ...テスト用クライアントのメインコード
+
+## 使い方
+`server/`フォルダ下で以下を実行する．
+```
+> go run main.go
+```
+
+もしくは実行ファイルをビルドして実行する．
+```
+> go build
+> server.exe
+```
+
 ## Go言語の環境構築について
 
 1. インストール
+`golang インストール`で検索して環境にあったものをインストールする．
 
 2. `GOPATH`の設定
 Go言語のパスは`GOROOT`と`GOPATH`の2つ．
