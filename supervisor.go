@@ -129,14 +129,7 @@ func (supv *Supervisor) AllocateMessageToAgent() {
 /* =========================================================
   ロガーへメッセージを送信するメソッド
 ========================================================= */
-func (supv *Supervisor) SendMessageToLogger(lg *Logger) {
-	// 記録用メッセージ生成
-	//msgj, _ := json.Marshal(&supv.agent_Tx_msgs) // （構造体からjson形式へ変換）
-	msgj, _ := json.Marshal(&supv.upstr_Rx_msg) // （構造体からjson形式へ変換）
-	if string(msgj) != "null" {
-		fmt.Println("Message to logger :", string(msgj)) // デバッグ用表示
-	}
-
+func (supv *Supervisor) SendMessageToLogger(lg *Logger, msgj []byte) {
 	// ロガーが存在するなら記録用メッセージを送る
 	if len(lg.Log_exist_ch) > 0 { 
 		lg.Log_str_ch <- string(msgj)
@@ -253,8 +246,16 @@ func (supv *Supervisor) Start(intvl int, adjmat [][]int) {
 
 				// 各エージェントへメッセージを送信
 				supv.AllocateMessageToAgent()
+
+				// デバッグ用表示メッセージ
+				//msgj, _ := json.Marshal(&supv.agent_Tx_msgs) // （構造体からjson形式へ変換）
+				msgj, _ := json.Marshal(&supv.upstr_Rx_msg) // （構造体からjson形式へ変換）
+				if string(msgj) != "null" {
+					fmt.Println("Message recieved :", string(msgj)) // デバッグ用表示
+				}
+
 				// ロガーへメッセージを送信
-				supv.SendMessageToLogger(lg)
+				supv.SendMessageToLogger(lg, msgj)
 
 			default:
 				//fmt.Println("Supevisor")
