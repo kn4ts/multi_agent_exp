@@ -11,8 +11,8 @@ import (
 	ネットワークオペレータの構造体
 //////////////////////////////////////////////////////////// */
 type NetworkOperator struct {
-	Upstr_exist_ch chan int   // 上流プログラムの存在判定用チャネル
-	agent_exist_ch []chan int // エージェントの存在判定用チャネル配列
+//	Upstr_exist_ch chan int   // 上流プログラムの存在判定用チャネル
+//	agent_exist_ch []chan int // エージェントの存在判定用チャネル配列
 	num_connect_ch chan int   // TCP接続数の制限用チャネル
 
 	host_ip  *HostIP  // ホストIPとポート保存用構造体
@@ -47,8 +47,8 @@ func NewNetworkOperator(haddr, hport string, aaddr []string) *NetworkOperator {
 		ach[i] = make(chan int, 1) // 各配列要素をint型のチャネルとして初期化
 	}
 	return &NetworkOperator{
-		Upstr_exist_ch: make(chan int, 1),
-		agent_exist_ch: ach,
+		//Upstr_exist_ch: make(chan int, 1),
+		//agent_exist_ch: ach,
 		num_connect_ch: make(chan int, num_of_agent+1), // エージェント数+1のバッファを持つチャネルを宣言
 
 		host_ip:  nh,
@@ -115,25 +115,25 @@ func (opr *NetworkOperator) DealConnection(conn net.Conn) {
 	// 接続IPアドレスによる役割の振り分け
 	if strings.HasPrefix(connected_address, opr.host_ip.addr) {
 		// fmt.Println(opr.host_ip.addr) // デバッグ用表示関数
-		opr.Upstr_exist_ch <- 1 // 上流プログラムが既に存在すればブロック
+		opr.Supv.upstr_exist_ch <- 1 // 上流プログラムが既に存在すればブロック
 		fmt.Printf("Hello, upstream\n")
 
 		// 上流プログラム用クライアントメソッドの実行
 		opr.UpstreamClient(conn)
 
-		<-opr.Upstr_exist_ch // 上流プログラムの存在判定チャネルの値を解放
+		<-opr.Supv.upstr_exist_ch // 上流プログラムの存在判定チャネルの値を解放
 		fmt.Printf("Bye, upstream\n")
 	} else {
 		// どのエージェントかの判定
 		for i := 0; i < len(opr.agent_ip.addr); i++ {
 			if strings.HasPrefix(connected_address, opr.agent_ip.addr[i]) {
-				opr.agent_exist_ch[i] <- 1 // エージェントiが既に存在すればブロック
+				opr.Supv.agent_exist_ch[i] <- 1 // エージェントiが既に存在すればブロック
 				fmt.Println("Hello, agent ", i+1)
 
 				// エージェント用クライアントメソッドの実行
 				opr.AgentClient(conn, i)
 
-				<-opr.agent_exist_ch[i] // エージェントの存在判定チャネルから値を解放
+				<-opr.Supv.agent_exist_ch[i] // エージェントの存在判定チャネルから値を解放
 				fmt.Println("Bye, agent ", i+1)
 				break
 			} else { // 接続先がどれでもなければ弾く
