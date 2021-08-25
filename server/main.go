@@ -12,19 +12,19 @@ var AGENT_ADDR = []string{ // エージェントのIPアドレス配列
 	"192.168.179.13",
 	"192.168.179.14"}
 
-const TIME_SAMPLE = 2000 // sampling interval [ms]
-var ADJ_MAT = [][]int{{0, 1, 0, 1},  // Adjacency matrix
-		      {1, 0, 1, 0},
-		      {0, 1, 0, 1},
-		      {1, 0, 1, 0}}
+const TIME_SAMPLE = 2000            // sampling interval [ms]
+var ADJ_MAT = [][]int{{0, 1, 0, 1}, // Adjacency matrix
+	{1, 0, 1, 0},
+	{0, 1, 0, 1},
+	{1, 0, 1, 0}}
 
 func main() {
 
 	// ネットワークオペレータを生成
-	nw_operator := multi_agent_exp.NewNetworkOperator( HOST_ADDR, HOST_PORT, AGENT_ADDR )
+	nw_operator := multi_agent_exp.NewNetworkOperator(HOST_ADDR, HOST_PORT, AGENT_ADDR)
 
 	// 監視者を並列で起動
-	go nw_operator.Supv.Start( TIME_SAMPLE, ADJ_MAT )
+	go nw_operator.Supv.Start(TIME_SAMPLE, ADJ_MAT)
 
 	// TCP待ち受け開始
 	nw_operator.WaitConnection()
