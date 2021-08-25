@@ -146,13 +146,16 @@ func NewSupervisor(n int) *Supervisor {
 
 	// エージェント数と同要素数のチャネル配列を宣言
 	upmsg := NewUpstreamMessage(n)
-	agmsg := []AgentRxMessage{}
+	agRmsg := []AgentRxMessage{}
+	agTmsg := []AgentTxMessage{}
 
 	for i := 0; i<n ; i++ {
 		ech[i] = make(chan int, 1) // 各配列要素をint型でバッファ1のチャネルとして初期化
 		sch[i] = make(chan string) // 各配列要素をstring型のチャネルとして初期化
 
-		agmsg = append( agmsg, AgentRxMessage{})
+		agRmsg = append( agRmsg, AgentRxMessage{})
+		agTmsg = append( agTmsg, AgentTxMessage{})
+
 	}
 
 	// 監視者の構造体のポインタを返す
@@ -168,7 +171,9 @@ func NewSupervisor(n int) *Supervisor {
 		agent_Rx_ch: sch,
 
 		upstr_Rx_msg: upmsg,
-		agent_Rx_msgs: agmsg,
+		agent_Rx_msgs: agRmsg,
+
+		agent_Tx_msgs: agTmsg,	// エージェント側送信メッセージ格納用の構造体
 	}
 }
 
