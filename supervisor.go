@@ -44,7 +44,8 @@ type Agent_rx struct {
 type AgentRxMessage struct {
 	Time           string    `json:"time"`     // 時刻文字列
 	Input          [2]float64 `json:"input"`    // 制御入力信号
-	OutputEstimate float64   `json:"y_hat"`    // 出力推定値
+	//OutputEstimate float64   `json:"y_hat"`    // 出力推定値
+	StateEstimate  [2]float64   `json:"x_hat"`    // 出力推定値
 	Residual       float64   `json:"residual"` // 残差信号
 }
 
@@ -60,7 +61,8 @@ type AgentTxMessage struct {
 type Agent_tx struct {
 	Input [2]float64 `json:"u"`
 	//Output	float64	`json:"y"`
-	OutputEstimate float64 `json:"y_hat"`
+	//OutputEstimate float64   `json:"y_hat"`    // 出力推定値
+	StateEstimate  [2]float64   `json:"x_hat"`    // 出力推定値
 	Residual       float64 `json:"residual"`
 }
 
@@ -89,7 +91,8 @@ func (supv *Supervisor) UpdateTxMessage() []AgentTxMessage {
 				agTx := Agent_tx{
 					Input: supv.agent_Rx_msgs[j].Input,
 					//Output:		supv.agent_Rx_msgs[j].Output,
-					OutputEstimate: supv.agent_Rx_msgs[j].OutputEstimate,
+					//OutputEstimate: supv.agent_Rx_msgs[j].OutputEstimate,
+					StateEstimate: supv.agent_Rx_msgs[j].StateEstimate,
 					Residual:       supv.agent_Rx_msgs[j].Residual,
 				}
 				agTxs = append(agTxs, agTx)

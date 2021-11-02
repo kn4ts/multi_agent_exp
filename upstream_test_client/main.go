@@ -71,12 +71,14 @@ func main(){
 	//conn, _ := net.Dial("tcp", "localhost:8001")
 	//conn, _ := net.Dial("tcp", "192.168.11.6:8001")
 	//conn, _ := net.Dial("tcp", "172.24.137.244:8001")
-	raddr, err := net.ResolveTCPAddr("tcp", "172.24.137.244:8001" )
+	//raddr, err := net.ResolveTCPAddr("tcp", "172.24.137.244:8001" )
+	raddr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:8001" )
 	 if err != nil {
 		fmt.Println("net resolve TCP Addr error ")
 		os.Exit(1)
 	}
-	laddr, err := net.ResolveTCPAddr("tcp", "172.24.137.244:8002" )
+	//laddr, err := net.ResolveTCPAddr("tcp", "172.24.137.244:8002" )
+	laddr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:8002" )
 	if err != nil {
 		fmt.Println("net resolve TCP Addr error ")
 		os.Exit(1)

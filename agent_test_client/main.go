@@ -14,8 +14,9 @@ import (
 type Message struct {
 	//Cmd	string	`json:"cmd"`
 	Time	string	`json:"time"`
-	Input	[2]float64	`json:"u"`
-	OutputEstimate	float64	`json:"y_hat"`
+	Input	[2]float64	`json:"input"`
+	//OutputEstimate	float64	`json:"y_hat"`
+	StateEstimate	[2]float64	`json:"x_hat"`
 	Residual	float64	`json:"residual"`
 }
 
@@ -73,12 +74,14 @@ func main(){
 	// TCP接続
 	//conn, _ := net.Dial("tcp", "localhost:8001")
 	//conn, _ := net.Dial("tcp", "192.168.11.6:8001")
-	raddr, err := net.ResolveTCPAddr("tcp", "172.24.137.244:8001" )
+	//raddr, err := net.ResolveTCPAddr("tcp", "172.24.137.244:8001" )
+	raddr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:8001" )
 	 if err != nil {
 		fmt.Println("net resolve TCP Addr error ")
 		os.Exit(1)
 	}
-	laddr, err := net.ResolveTCPAddr("tcp", "172.24.137.244:8003" )
+	//laddr, err := net.ResolveTCPAddr("tcp", "172.24.137.244:8003" )
+	laddr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:8003" )
 	if err != nil {
 		fmt.Println("net resolve TCP Addr error ")
 		os.Exit(1)
@@ -147,7 +150,8 @@ func main(){
 			//msg.Cmd = cmd
 			msg.Time = time.Now().Format(layout)
 			msg.Input[0], msg.Input[1] = 1, 2
-			msg.OutputEstimate = 1.1
+			//msg.OutputEstimate = 1.1
+			msg.StateEstimate[0], msg.StateEstimate[1] = 1.1, 2.2
 			msg.Residual = 2.2
 			msgj, _ := json.Marshal(&msg)
 			fmt.Println(string(msgj))
