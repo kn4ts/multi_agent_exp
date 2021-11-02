@@ -7,7 +7,8 @@
 * `timer.go` ...タイマーのサブコード
 * `logger.go` ...ロガーのサブコード
 
-* `client/main.go` ...テスト用クライアントのメインコード
+* `upstream_test_client/main.go` ...テスト用上流側クライアントのコード  
+* `agent_test_client/main.go` ...テスト用エージェントクライアントのコード
 
 ## 使い方
 
