@@ -43,7 +43,7 @@ type Agent_rx struct {
 // エージェント側受信メッセージ格納用の構造体
 type AgentRxMessage struct {
 	Time           string    `json:"time"`     // 時刻文字列
-	Input          []float64 `json:"input"`    // 制御入力信号
+	Input          [2]float64 `json:"input"`    // 制御入力信号
 	OutputEstimate float64   `json:"y_hat"`    // 出力推定値
 	Residual       float64   `json:"residual"` // 残差信号
 }
@@ -58,7 +58,7 @@ type AgentTxMessage struct {
 
 // 隣接エージェント(j)の情報格納用の構造体
 type Agent_tx struct {
-	Input []float64 `json:"u"`
+	Input [2]float64 `json:"u"`
 	//Output	float64	`json:"y"`
 	OutputEstimate float64 `json:"y_hat"`
 	Residual       float64 `json:"residual"`
@@ -118,10 +118,12 @@ func (supv *Supervisor) AllocateMessageToAgent() {
 		if len(supv.agent_exist_ch[i]) > 0 {
 			msgj, _ := json.Marshal(&supv.agent_Tx_msgs[i]) // （構造体からjson形式へ変換）
 			if string(msgj) != "null" {
-				fmt.Println("Message to agent ", i, " :", string(msgj)) // デバッグ用表示
+				//fmt.Println("Message to agent ", i+1, " :", string(msgj)) // デバッグ用表示
 			}
 			// メッセージ送信
+			//fmt.Println("Message sending to agent ", i+1) // デバッグ用表示
 			supv.agent_Tx_ch[i] <- string(msgj)
+			//fmt.Println("Message send complete to agent ", i+1) // デバッグ用表示
 		}
 	}
 }
@@ -129,11 +131,12 @@ func (supv *Supervisor) AllocateMessageToAgent() {
 /* =========================================================
   ロガーへメッセージを送信するメソッド
 ========================================================= */
-func (supv *Supervisor) SendMessageToLogger(lg *Logger, msgj []byte) {
+func (supv *Supervisor) SendMessageToLogger(lg *Logger, msgj1, msgj2  []byte) {
+	msgj_temp := string(msgj1) +";" +string(msgj2)
 	// ロガーが存在するなら記録用メッセージを送る
 	if len(lg.Log_exist_ch) > 0 {
-		lg.Log_str_ch <- string(msgj)
-		fmt.Println("Message to logger :", string(msgj)) // デバッグ用表示
+		lg.Log_str_ch <- string(msgj_temp)
+		fmt.Println("Message to logger :", string(msgj_temp)) // デバッグ用表示
 	}
 }
 
@@ -150,11 +153,10 @@ func NewSupervisor(n int) *Supervisor {
 
 	for i := 0; i < n; i++ {
 		ech[i] = make(chan int, 1) // 各配列要素をint型でバッファ1のチャネルとして初期化
-		sch[i] = make(chan string) // 各配列要素をstring型のチャネルとして初期化
+		sch[i] = make(chan string, 1) // 各配列要素をstring型のチャネルとして初期化
 
 		agRmsg = append(agRmsg, AgentRxMessage{})
 		agTmsg = append(agTmsg, AgentTxMessage{})
-
 	}
 
 	// 監視者の構造体のポインタを返す
@@ -164,7 +166,7 @@ func NewSupervisor(n int) *Supervisor {
 		upstr_exist_ch: make(chan int, 1), // 上流プログラムの存在判定用チャネル
 		agent_exist_ch: ech,               // エージェントの存在判定用チャネル配列
 
-		upstr_Tx_ch: make(chan string),
+		upstr_Tx_ch: make(chan string, 1),
 		upstr_Rx_ch: make(chan string),
 		agent_Tx_ch: sch,
 		agent_Rx_ch: sch,
@@ -193,41 +195,46 @@ func (supv *Supervisor) Start(intvl int, adjmat [][]int) {
 
 MAIN:
 	for {
-		// 上流プログラム側メッセージ待ち受け
+		// 上流プログラム側メッセージ待ち受け（非同期）
 		var upstr_RX_temp string // 一時文字列を定義
 		select {
-		case upstr_RX_temp = <-supv.upstr_Rx_ch: // 受信メッセージがあれば以下を実行
+		case supv.upstr_Tx_ch <- "1":
+			upstr_RX_temp = <-supv.upstr_Rx_ch // 受信メッセージがあれば以下を実行
+			//fmt.Println("Recieved message from Upstream")
 			// 受信した文字列を指定の構造体に変換して格納
 			err := json.Unmarshal([]byte(upstr_RX_temp), &supv.upstr_Rx_msg)
 			if err != nil {
 				fmt.Println("unmarshal error (upstrm)")
 			}
-
-			supv.agent_Tx_msgs = supv.UpdateTxMessage() // 送信用構造体を更新
-
+			// 送信用構造体を更新
+			supv.agent_Tx_msgs = supv.UpdateTxMessage() 
 		default: // 受信メッセージがなければ流す
 		}
 
-		//エージェント側メッセージ待ち受け
-		var agent_RX_temp string // 一時文字列を定義
+		//エージェント側メッセージ待ち受け（非同期）
 		for i := range supv.agent_Rx_ch {
+			var agent_RX_temp string // 一時文字列を定義
+			//msgj, _ := json.Marshal(&supv.agent_Tx_msgs[i])
 			select {
-			case agent_RX_temp = <-supv.agent_Rx_ch[i]: // 受信メッセージがあれば以下を実行
-
+			//case supv.agent_Tx_ch[i] <- string(msgj):
+			//	agent_RX_temp = <- supv.agent_Rx_ch[i] // 受信メッセージがあれば以下を実行
+			case	agent_RX_temp = <- supv.agent_Rx_ch[i]: // 受信メッセージがあれば以下を実行
 				// 受信した文字列を指定の構造体に変換して格納
-				err := json.Unmarshal([]byte(agent_RX_temp), supv.agent_Rx_msgs[i])
+				fmt.Println("Recieved message from Agent ", i+1)
+				err := json.Unmarshal([]byte(agent_RX_temp), &supv.agent_Rx_msgs[i])
 				if err != nil {
-					fmt.Println("unmarshal error agent:", i)
+					fmt.Println("unmarshal error agent:", i+1)
+					//fmt.Println("[",agent_RX_temp,"]")
 				}
-
-				supv.agent_Tx_msgs = supv.UpdateTxMessage() // 送信用構造体を更新
+				// 送信用構造体を更新
+				supv.agent_Tx_msgs = supv.UpdateTxMessage()
 			default: // 受信メッセージがなければ流す
 				//supv.upstr_Rx_msg.Cmd = ""
 			}
 		}
 
-		select {
 		// 制御周期毎の処理内容
+		select {
 		case <-tm.tick_ch: // Tickerが発火していたら処理に入る
 
 			// コマンドによって実行動作を切り替え
@@ -256,20 +263,25 @@ MAIN:
 			// 各エージェントへメッセージを送信
 			supv.AllocateMessageToAgent()
 
-			msgj, _ := json.Marshal(&supv.upstr_Rx_msg) // （構造体からjson形式へ変換）
-			// ロガーへメッセージを送信
-			supv.SendMessageToLogger(lg, msgj)
+			// 記録用のデータ処理
+			upstr_msgj, _ := json.Marshal(&supv.upstr_Rx_msg) // （構造体からjson形式へ変換）
+			agent_msgj, _ := json.Marshal(&supv.agent_Rx_msgs) // （構造体からjson形式へ変換）
 
-			if supv.upstr_Rx_msg.Cmd == "" {
-				fmt.Println("Message recieved : none") // デバッグ用表示
+			// ロガーへメッセージを送信
+			supv.SendMessageToLogger(lg, upstr_msgj, agent_msgj)
+
+			/*if supv.upstr_Rx_msg.Cmd == "" {
+				fmt.Println("Message recieved from Upstream: none") // デバッグ用表示
 			} else {
 				// デバッグ用表示メッセージ
 				//msgj, _ := json.Marshal(&supv.agent_Tx_msgs) // （構造体からjson形式へ変換）
-				if string(msgj) != "null" {
-					fmt.Println("Message recieved :", string(msgj)) // デバッグ用表示
+				if string(upstr_msgj) != "null" {
+					fmt.Println("Message recieved from Upstream:", string(upstr_msgj)) // デバッグ用表示
 				}
-			}
-
+			}*/
+			// デバッグ用表示メッセージ
+			fmt.Println("Message recieved from Upstr", string(upstr_msgj))
+			fmt.Println("Message recieved from Agent", string(agent_msgj))
 
 		default:
 			//fmt.Println("Supevisor")

@@ -11,9 +11,9 @@ import (
 	ネットワークオペレータの構造体
 //////////////////////////////////////////////////////////// */
 type NetworkOperator struct {
-//	Upstr_exist_ch chan int   // 上流プログラムの存在判定用チャネル
-//	agent_exist_ch []chan int // エージェントの存在判定用チャネル配列
-	num_connect_ch chan int   // TCP接続数の制限用チャネル
+	//	Upstr_exist_ch chan int   // 上流プログラムの存在判定用チャネル
+	//	agent_exist_ch []chan int // エージェントの存在判定用チャネル配列
+	num_connect_ch chan int // TCP接続数の制限用チャネル
 
 	host_ip  *HostIP  // ホストIPとポート保存用構造体
 	agent_ip *AgentIP // エージェントIPの保存用構造体
@@ -35,17 +35,17 @@ type AgentIP struct {
 // オペレータのコンストラクタ（生成・初期化関数）
 func NewNetworkOperator(haddr, hport string, aaddr []string) *NetworkOperator {
 	nh := NewHostIP(haddr, hport) // サーバIPアドレス，ポートを格納
-	na := NewAgentIP(aaddr) // エージェントのIPアドレスを格納
+	na := NewAgentIP(aaddr)       // エージェントのIPアドレスを格納
 
 	num_of_agent := len(aaddr) // エージェントの数をアドレス数から取得
 
 	// 監視者構造体の生成・初期化
 	ns := NewSupervisor(num_of_agent)
 
-	ach := make([]chan int, num_of_agent) // エージェント数と同要素数のチャネル配列を宣言
+	/*ach := make([]chan int, num_of_agent) // エージェント数と同要素数のチャネル配列を宣言
 	for i := range ach {
 		ach[i] = make(chan int, 1) // 各配列要素をint型のチャネルとして初期化
-	}
+	}*/
 	return &NetworkOperator{
 		//Upstr_exist_ch: make(chan int, 1),
 		//agent_exist_ch: ach,
@@ -113,10 +113,10 @@ func (opr *NetworkOperator) DealConnection(conn net.Conn) {
 	//fmt.Println("Accept connection ", connected_address) // デバッグ用表示関数
 
 	// 接続IPアドレスによる役割の振り分け
-	if strings.HasPrefix(connected_address, opr.host_ip.addr) {
+	if strings.HasPrefix(connected_address, opr.host_ip.addr+":8002") {
 		// fmt.Println(opr.host_ip.addr) // デバッグ用表示関数
 		opr.Supv.upstr_exist_ch <- 1 // 上流プログラムが既に存在すればブロック
-		fmt.Printf("Hello, upstream\n")
+		fmt.Printf("Hello, upstream, ", connected_address, "\n")
 
 		// 上流プログラム用クライアントメソッドの実行
 		opr.UpstreamClient(conn)
@@ -141,7 +141,7 @@ func (opr *NetworkOperator) DealConnection(conn net.Conn) {
 			}
 		}
 	}
-	conn.Close() // 接続を閉じる
+	conn.Close()         // 接続を閉じる
 	<-opr.num_connect_ch // TCP接続の枠を1つ解放
 }
 
@@ -159,9 +159,12 @@ func (opr *NetworkOperator) UpstreamClient(conn net.Conn) {
 			fmt.Println("TCP read error in Upstream: ", conn.RemoteAddr().String())
 			break
 		}
+		select{
+		case <- opr.Supv.upstr_Tx_ch:
 		// 受信メッセージをスーパバイザに送る
-		opr.Supv.upstr_Rx_ch <- string(buf[:n])
-		//opr.supv.upstr_Rx_ch <- string(buf[:n])
+			opr.Supv.upstr_Rx_ch <- string(buf[:n])
+		default:
+		}
 	}
 }
 
@@ -171,26 +174,33 @@ func (opr *NetworkOperator) UpstreamClient(conn net.Conn) {
 //////////////////////////////////////////////////////////// */
 func (opr *NetworkOperator) AgentClient(conn net.Conn, i int) {
 	//fmt.Println("agent ", i)
+	var tcp_send_str string
 	for {
 		// TCP受信
 		buf := make([]byte, 1024)
 		// Readerを作成して、送られてきたメッセージを出力する
 		n, err := conn.Read(buf)
 		if err != nil {
-			fmt.Println("TCP read error in agent ", i, " address:", conn.RemoteAddr().String())
+			fmt.Println("TCP read error in agent ", i+1, " address:", conn.RemoteAddr().String())
 			break
 		}
-		// 受信メッセージを監視者に送る
-		opr.Supv.agent_Rx_ch[i] <- string(buf[:n])
-		//opr.supv.agent_Rx_ch <- string(buf[:n])
+
 
 		// 送信メッセージを監視者から受け取る
-		tcp_send_str := <-opr.Supv.agent_Tx_ch[i]
-		// TCP送信
-		_, err = conn.Write([]byte(tcp_send_str))
-		if err != nil {
-			fmt.Println("TCP send error in agent ", i, "address", conn.RemoteAddr().String())
-			break
+		select{
+		case tcp_send_str = <-opr.Supv.agent_Tx_ch[i]:
+			//fmt.Println("Agent client sending message (agent ", i+1, " )")
+			// 受信メッセージを監視者に送る
+			opr.Supv.agent_Rx_ch[i] <- string(buf[:n])
+
+			// TCP送信
+			_, err = conn.Write([]byte(tcp_send_str))
+			if err != nil {
+				fmt.Println("TCP send error in agent ", i+1, "address", conn.RemoteAddr().String())
+				break
+			}
+		default:
 		}
+
 	}
 }

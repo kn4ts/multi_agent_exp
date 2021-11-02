@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	//"strings"
 	"time"
+	"os"
 )
 
 const NA = 4
@@ -14,7 +15,7 @@ const NA = 4
 type Message struct {
 	Cmd	string	`json:"cmd"`
 	Time	string	`json:"time"`
-	Agents	[]Agent	`json:"agent"`
+	Agents	[]Agent	`json:"agents"`
 }
 
 type Agent struct {
@@ -67,11 +68,28 @@ func main(){
 	}
 
 	// TCP接続
-	conn, _ := net.Dial("tcp", "localhost:8001")
+	//conn, _ := net.Dial("tcp", "localhost:8001")
+	//conn, _ := net.Dial("tcp", "192.168.11.6:8001")
+	//conn, _ := net.Dial("tcp", "172.24.137.244:8001")
+	raddr, err := net.ResolveTCPAddr("tcp", "172.24.137.244:8001" )
+	 if err != nil {
+		fmt.Println("net resolve TCP Addr error ")
+		os.Exit(1)
+	}
+	laddr, err := net.ResolveTCPAddr("tcp", "172.24.137.244:8002" )
+	if err != nil {
+		fmt.Println("net resolve TCP Addr error ")
+		os.Exit(1)
+	}
+	//conn, _ := net.Dial("tcp", "172.24.137.244:8001")
+	conn, _ := net.DialTCP("tcp", laddr, raddr)
+
+	//conn, _ := net.Dial("tcp", "192.168.179.10:8001")
 	//conn, _ := net.Dial("tcp", "127.0.0.1:8001")
 	ch := make(chan string)
 
 	// タイマーの初期化と実行
+	//tim := NewTimer(100)
 	tim := NewTimer(2000)
 	go tim.TickFunc()
 
@@ -89,7 +107,9 @@ func main(){
 				ch <- "c"
 				//res = fmt.Sprintf("start\r")
 				//conn.Write([]byte(res))
-			} else {
+			} else if keyinput == "q"{
+				ch <- "q"
+			}else {
 				ch <- "0"
 			}
 		}

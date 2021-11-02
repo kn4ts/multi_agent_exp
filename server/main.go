@@ -2,12 +2,20 @@ package main
 
 import "github.com/kn4ts/multi_agent_exp"
 
-const HOST_ADDR = "127.0.0.1" // Hostの待ち受けIPアドレス
+//const HOST_ADDR = "127.0.0.1" // Hostの待ち受けIPアドレス
+const HOST_ADDR = "172.24.137.244"
 //const HOST_ADDR = "192.168.179.10"
+//const HOST_ADDR = "192.168.179.6"
+//const HOST_ADDR = "192.168.11.6"
 const HOST_PORT = ":8001" // Hostの待ち受けポート
 
 var AGENT_ADDR = []string{ // エージェントのIPアドレス配列
-	"192.168.179.11",
+//	"192.168.11.11",
+//	"192.168.11.12",
+//	"192.168.11.13",
+//	"192.168.11.14"}
+	//"192.168.179.11",
+	"172.24.137.244:8003",
 	"192.168.179.12",
 	"192.168.179.13",
 	"192.168.179.14"}
